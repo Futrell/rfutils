@@ -26,5 +26,6 @@ Doodles:
 * ondiskiter
 * onetomany
 * probcounter
+* jointprobcounter
 
 Richard Futrell, 2014
