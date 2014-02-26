@@ -1,4 +1,6 @@
-from dictutils import HashableDict
+class HashableDict(dict):
+    def __hash__(self):
+        return hash(tuple(self.iteritems()))
 
 class ManyToOneDict(dict):
     """ A dictionary with multiple values (tuples) as keys. 
