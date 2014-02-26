@@ -53,7 +53,10 @@ def conditional_entropy_of_counts(iterable_of_iterables):
             except ValueError:
                 pass
         grand_total += total
-        entropy += total * -(clogc/total - log(total)) / base
+        try:
+            entropy += total * -(clogc/total - log(total)) / base
+        except ZeroDivisionError:
+            pass
     return entropy / grand_total
 
 def mutual_information(counts):
@@ -66,7 +69,7 @@ def mutual_information(counts):
 
     """
     if isinstance(counts, dict):
-        counts = counter.iteritems()
+        counts = counts.iteritems()
 
     total = 0
     c_x = Counter()
