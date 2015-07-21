@@ -2,7 +2,7 @@
 
 CYRILLIC_TO_LATIN_TSV = "data/cyrillic2latin.tsv"
 
-import ..filehandling as fh    
+from .. import filehandling as fh
     
 class Transcriber(object):
     sep = u"\t"
