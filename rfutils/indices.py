@@ -22,3 +22,18 @@ class Indices(dict):
         super(Indices, self).update({k:self.count+i for i,k in enumerate(new_items)})
         self.count += len(new_items)
         self.keylist.extend(new_items)
+        
+def uniquely_indexed(xs):
+    xs = list(xs)
+    c = Counter(xs)
+    d = {x : it.permutations(range(n)) for x, n in c.items()}
+    perms = map(dict, it.product(*[[(x,p) for p in perm]
+                                   for x, perm in d.iteritems()]))
+    for perm in perms:
+        def gen():
+            c_so_far = Counter()
+            for x in xs:
+                yield x, perm[x][c_so_far[x]]
+                c_so_far[x] += 1
+        yield list(gen())
+

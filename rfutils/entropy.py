@@ -7,6 +7,9 @@ base = log(2)
 def log2(x):
     return log(x, 2)
 
+def entropy_of_tokens(tokens):
+    return entropy(Counter(tokens))
+
 def entropy(counts):
     """ entropy
 
@@ -23,6 +26,9 @@ def entropy(counts):
         Entropy of the counts, a positive number.
 
     """
+    if isinstance(counts, dict):
+        counts = counts.itervalues()
+
     total = 0.0
     clogc = 0.0
     for c in counts:
@@ -31,8 +37,14 @@ def entropy(counts):
             clogc += c * log(c)
         except ValueError:
             pass
-    return -(clogc/total - log(total)) / base
+    try:
+        return -(clogc/total - log(total)) / base
+    except ValueError:
+        return 0
 
+def conditional_entropy(dict_of_counters):
+    counts = (counter.itervalues() for counter in dict_of_counters.itervalues())
+    return conditional_entropy_of_counts(counts)
 
 def conditional_entropy_of_counts(iterable_of_iterables):
     """ conditional entropy of counts
@@ -57,8 +69,41 @@ def conditional_entropy_of_counts(iterable_of_iterables):
             entropy += total * -(clogc/total - log(total)) / base
         except ZeroDivisionError:
             pass
-    return entropy / grand_total
+    try:
+        return entropy / grand_total
+    except ZeroDivisionError:
+        return 0
 
+class KLDomainError(Exception):
+    pass
+
+def kl(P, Q):
+    """ Kullback-Leibler Divergence from P to Q.
+    
+    P and Q are dicts representing unnormalized discrete probability
+    distributions.
+    
+    """
+    result = 0.0
+    Z_P = 0.0
+    Z_Q = 0.0
+    for i, c_i in P.iteritems():
+        try:
+            result += c_i * log(c_i)
+            Z_P += c_i
+            cq_i = Q[i]
+            try:
+                result -= c_i * log(cq_i)
+            except ValueError:
+                error_str = "KL requires Q[i] == 0 -> P[i] == 0. "
+                error_str += "Q[%s] == 0 but P[%s] == %s" % (i, i, c_i)
+                raise KLDomainError(error_str)
+            Z_Q += cq_i
+        except ValueError:
+            pass
+    result += Z_P * (log(Z_Q) - log(Z_P))
+    return (result / Z_P) / base
+    
 def mutual_information(counts):
     """ mutual information
     
