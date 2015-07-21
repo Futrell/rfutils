@@ -356,8 +356,8 @@ def isplit(iterable, sep, maxsplit=None):
 
     Example:
         >>> foo = iter([0, 1, 2, 3, 'dog', 4, 5, 6, 7, 'dog', 8, 9])
-        >>> list(set(chunk) for chunk in isplit(foo, 'dog'))
-        [set([0, 1, 2, 3]), set([4, 5, 6, 7]), set([8, 9])]
+        >>> [list(chunk) for chunk in isplit(foo, 'dog')]
+        [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9]]
 
     """
     it = iter(iterable)
