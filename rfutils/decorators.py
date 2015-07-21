@@ -32,3 +32,13 @@ def lazy_property(method):
 
     return property(_lazyprop)
 
+def singleton(klass):
+    """ Decorator for singleton class. """
+    # we have to make sure the class has a different name from its object,
+    # lest the object become impossible to pickle.
+    # hence some nastiness:
+    class_name = "%s_class" % klass.__name__
+    globals()[class_name] = klass
+    klass.__name__ = class_name
+    return klass()
+

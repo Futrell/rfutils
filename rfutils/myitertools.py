@@ -1,12 +1,23 @@
-import __builtin__
 from itertools import *
 from operator import add, itemgetter
-import collections
-import functools
+from collections import deque
+from functools import partial
+
+try:
+    map = imap
+    filter = ifilter
+    filterfalse = ifilterfalse
+    zip = izip
+    zip_longest = izip_longest
+    range = xrange
+except NameError:
+    pass
 
 _SENTINEL = object()
 
-consume = functools.partial(collections.deque, maxlen=0)
+consume = partial(deque, maxlen=0)
+
+flat = chain.from_iterable
 
 def blocks(iterable, size, fillvalue=None):
     """ Blocks
@@ -22,15 +33,15 @@ def blocks(iterable, size, fillvalue=None):
         [('foo', 'bar'), ('baz', 'qux'), ('zim', None)]
 
     """
-    return izip_longest(*[iter(iterable)]*size, fillvalue=fillvalue)
+    return zip_longest(*[iter(iterable)]*size, fillvalue=fillvalue)
 
 def chunks(iterable, size):
     """ Chunks
 
-    Break an iterable into chunks of specified size. 
-    Equivalent to imap(list, ichunks(iterable, size)), but faster for 
+    Break an iterable into chunks of specified size.
+    Equivalent to map(list, ichunks(iterable, size)), but faster for
     small-sized chunks.
-    
+
     Params:
         iterable: An iterable
         size: An integer size.
@@ -45,7 +56,7 @@ def chunks(iterable, size):
 
     """
     # Based on more-itertools by erikrose
-    for group in (list(g) for g in izip_longest(*[iter(iterable)] * size,
+    for group in (list(g) for g in zip_longest(*[iter(iterable)] * size,
                                                 fillvalue=_SENTINEL)):
         if group[-1] is _SENTINEL:
             # If this is the last group, shuck off the padding:
@@ -77,10 +88,13 @@ def ichunks(iterable, size):
         [['foo', 'bar', 'baz'], ['qux', 'zim', 'cat'], ['dog']]
 
     """
-    it = iter(iterable)
-    while 1:
-        chunk = islice(it, size)
-        probe = next(chunk) # raises StopIteration if nothing's there
+    xs = iter(iterable)
+    while True:
+        chunk = islice(xs, size)
+        try:
+            probe = next(chunk)
+        except StopIteration: # need to do it this way in Python 3.5+
+            raise StopIteration 
         yield chain([probe], chunk)
         consume(chunk)
 
@@ -88,7 +102,7 @@ def segments(iterable, breakpoints):
     """ Segments
 
     Break iterable into contiguous segments at specified index
-    breakpoints. New iterators are formed starting with each breakpoint. 
+    breakpoints. New iterators are formed starting with each breakpoint.
 
     Params:
         iterable: An iterable to be broken into segments.
@@ -102,43 +116,51 @@ def segments(iterable, breakpoints):
         >>> lst = ['foo', 'bar', 'baz', 'qux', 'zim', 'cat', 'dog']
         >>> list(map(list, segments(lst, (3,4))))
         [['foo', 'bar', 'baz'], ['qux'], ['zim', 'cat', 'dog']]
-        
+
     """
-    it = iter(iterable)
+    xs = iter(iterable)
     previous_breakpoint = 0
     for breakpoint in breakpoints:
-        subit = islice(it, breakpoint - previous_breakpoint)
+        subit = islice(xs, breakpoint - previous_breakpoint)
         yield subit
         consume(subit)
         previous_breakpoint = breakpoint
-    yield list(it)
+    yield xs
 
-def segmentations(iterable):
+def segmentations(iterable, maxlen=None):
     """ Segmentations
 
-    Generate all possible ways to segment an iterable. 
+    Generate all possible ways to break an iterable into contiguous segments.
 
     Params:
-        iterable: The iterable. It will be consumed and held in memory.
+        iterable: Any iterable; it will be consumed and held in memory.
+        maxlen: Maximum length of a segment.
 
     Yields:
-        Lists of lists representing possible segmentations.
+        Tuples of tuples representing possible segmentations.
 
     Example:
-        >>> lst = ['foo', 'bar', 'baz']
-        >>> list(segmentations(lst))
-        [[['foo', 'bar', 'baz']], 
-         [['foo'], ['bar', 'baz']], 
-         [['foo', 'bar'], ['baz']], 
-         [['foo'], ['bar'], ['baz']]] 
+    >>> xs = [1, 2, 3]
+    >>> list(segmentations(xs))
+    [((1, 2, 3),), ((1,), (2, 3)), ((1, 2), (3,)), ((1,), (2,), (3,))]
 
     """
     iterable = list(iterable)
     n = len(iterable)
-    breakpoint_groups = (combinations(xrange(1, n), i) for i in xrange(n))
-    for breakpoint_group in breakpoint_groups:
-        for breakpoints in breakpoint_group:
-            yield list(map(list, segments(iterable, breakpoints)))
+    breakpoint_groups = (combinations(range(1, n), i) for i in range(n))
+    if maxlen is None:
+        for breakpoint_group in breakpoint_groups:
+            for breakpoints in breakpoint_group:
+                yield tuple(map(tuple, segments(iterable, breakpoints)))
+    else:
+        for breakpoint_group in breakpoint_groups:
+            for breakpoints in breakpoint_group:
+                breakpoint_guards = [0] + list(breakpoints)
+                breakpoint_guards.append(n)
+                if all(second - first <= maxlen
+                       for first, second in zip(breakpoint_guards[0:],
+                                                breakpoint_guards[1:])):
+                    yield tuple(map(tuple, segments(iterable, breakpoints)))
 
 def items_in_context(iterable):
     lst = list(iterable)
@@ -166,26 +188,25 @@ def sliding(iterable, n):
     """
     its = tee(iterable, n)
     for i, it in enumerate(its):
-        for _ in xrange(i):
+        for _ in range(i):
             next(it)
-    return izip(*its)
+    return zip(*its)
 
 def one_thru_ngrams(iterable, n):
     """ 1-thru-N-grams
 
-    Yield all m-grams from an iterable for m = 1:n.
-    They'll come out in arbitrary order.
+    Yield all m-grams from an iterable for m = 1:n inclusive.
+    The order in which they come out is not guaranteed.
 
     Example:
-        >>> set(one_thru_ngrams("abcd", 3))
-        {('a',), ('a', 'b'), ('a', 'b', 'c'), ('b',), ('b', 'c'), 
-        ('b', 'c', 'd'), ('c',), ('c', 'd'), ('d',)}
+        >>> set(one_thru_ngrams("abc", 3))
+        set([('b', 'c'), ('a',), ('c',), ('b',), ('a', 'b', 'c'), ('a', 'b')])
 
     """
-    if isinstance(iterable, Iterator):
+    if hasattr(iterable, '__next__') or hasattr(iterable, 'next'):
         its = tee(iterable, n)
         for i, it in enumerate(its):
-            for _ in xrange(i):
+            for _ in range(i):
                 next(it)
 
         first_it = its[0]
@@ -194,7 +215,7 @@ def one_thru_ngrams(iterable, n):
         so_far = []
         so_far_append = so_far.append
 
-        while 1:
+        while True:
             del so_far[:]
             so_far_append(next(first_it))
             yield tuple(so_far)
@@ -205,35 +226,48 @@ def one_thru_ngrams(iterable, n):
                 except StopIteration:
                     pass
     else:
-        for x in chain.from_iterable(sliding(iterable, m) for m in xrange(n)):
+        for x in flat(sliding(iterable, m) for m in range(n+1)):
             yield x
 
-def partition(pred, iterable):
-    """ Partition
-
-    Use a predicate to partition entries into true entries and false entries.
-
-    Example: 
+try:
+    partition
+except NameError:    
+    def partition(pred, iterable):
+        """ Partition
+        
+        Use a predicate to partition entries into true entries and false entries.
+        
+        Example:
         >>> def is_even(x): return x % 2 == 0
         >>> x, y = partition(is_even, range(10))
         >>> list(x)
         [0, 2, 4, 6, 8]
         >>> list(y)
         [1, 3, 5, 7, 9]
+        
+        """
+        # Based on http://docs.python.org/3.4/library/itertools.html
+        t1, t2 = tee(iterable)
+        return filter(pred, t1), filterfalse(pred, t2)
 
-    """
-    # Based on http://docs.python.org/3.4/library/itertools.html
-    t1, t2 = tee(iterable)
-    return ifilter(pred, t1), ifilterfalse(pred, t2)
-
-def accumulate(iterable, fn=add, start=None):
-    it = iter(iterable)
-    total = next(it) if start is None else start
-    yield total
-    for x in it:
-        total = fn(total, x)
+try:
+    accumulate
+except NameError:
+    def accumulate(iterable, fn=add, start=None):
+        it = iter(iterable)
+        total = next(it) if start is None else start
         yield total
-    
+        for x in it:
+            total = fn(total, x)
+            yield total
+
+def buildup(iterable):
+    so_far = []
+    for xs in iterable:
+        xs = list(xs)
+        so_far.append(x)
+        yield flat(so_far)
+
 def unique(iterable, key=None):
     """ iterate over unique elements of iterable, preserving order """
     seen = set()
@@ -251,65 +285,32 @@ def unique(iterable, key=None):
                 seen_add(value)
                 yield element
 
-def take(n, iterable):
-    """ take
-
-    Return a list containing the first n elements of iterable.
-
-    """
-    return list(islice(iterable, n))
-
 def itranspose(X):
-    its = list(imap(iter, X))
+    its = list(map(iter, X))
     while 1:
-        subit = imap(next, its)
+        subit = map(next, its)
         probe = next(subit)
         yield chain([probe], subit)
         consume(subit)
 
-def first(iterable, default=_SENTINEL):
+def first(iterable):
     """ Return the first element of an iterable. """
+    for x in iterable:
+        return x
+    else:
+        raise ValueError("Empty iterable passed to first.")
+
+def last(iterable):
+    """ Return the last element of an iterable. """
     try:
-        return next(iter(iterable))
-    except StopIteration:
-        if default is _SENTINEL:
-            raise ValueError("Empty iterable passed to first.")
-        else:
-            return default
-
-def first_and_rest(iterable, default=_SENTINEL):
-    """ first and rest
-
-    Return the first element of the iterable and an iterator for the rest.
-
-    """
-    it = iter(iterable)
-    try:
-        return next(it), it
-    except StopIteration:
-        if default is _SENTINEL:
-            raise VaueError("Empty iterable passed to first_and_rest.")
-        else:
-            return default, it
-
-def last(iterable, default=_SENTINEL):
-    """ last
-
-    Get the last element of an iterable.
-
-    """
-    try:
-        return deque(iterable, 1).pop()
+        return deque(iterable, 1)[0]
     except IndexError:
-        if default is _SENTINEL:
-            raise ValueError("Empty iterable passed to last.")
-        else:
-            return default
-        
+        raise ValueError("Empty iterable passed to last.")
+
 def uniq(iterable, key=None):
     """ uniq: Remove adjacent duplicates.
 
-    Preserves order. Remember only the element just seen. Like Posix uniq.
+    Preserves order. Remember only the element just seen. Like Unix uniq.
 
     Examples:
         >>> list(uniq('AAAABBBCCDAABBB'))
@@ -320,24 +321,24 @@ def uniq(iterable, key=None):
 
     """
     if key is None: # fast path
-        return (k for k, g in groupby(iterable)) 
+        return (k for k, g in groupby(iterable))
     else:
-        return imap(next, imap(itemgetter(1), groupby(iterable, key)))
+        return map(next, map(itemgetter(1), groupby(iterable, key)))
 
 def unsliding(iterable):
     """ unsliding
 
-    Undo the sliding function: turn an iterable (a,b),(b,c),(c,d)... into 
+    Undo the sliding function: turn an iterable (a,b),(b,c),(c,d)... into
     a,b,c....
-    
+
     Operates on any iterable of iterables.
 
     Examples:
         >>> foo = [('a', 'b', 'c'), ('b', 'c', 'd'), ('c', 'd', 'e')]
         >>> list(unsliding(foo))
         ['a', 'b', 'c', 'd', 'e']
-        
-        >>> bar = sliding(xrange(5), 3)
+
+        >>> bar = sliding(range(5), 3)
         >>> list(unsliding(bar))
         [0, 1, 2, 3, 4]
 
@@ -351,7 +352,7 @@ def unsliding(iterable):
 def isplit(iterable, sep, maxsplit=None):
     """ Iterative Split
 
-    Like str.split but operates lazily on any iterable. 
+    Like str.split but operates lazily on any iterable.
 
     Example:
         >>> foo = iter([0, 1, 2, 3, 'dog', 4, 5, 6, 7, 'dog', 8, 9])
@@ -362,16 +363,65 @@ def isplit(iterable, sep, maxsplit=None):
     it = iter(iterable)
     if maxsplit is None:
         while 1:
-            subit = iter(it.next, sep)
-            probe = next(subit) # let StopIteration percolate up
+            subit = iter(lambda: next(it), sep)
+            try:
+                probe = next(subit)
+            except StopIteration:
+                raise StopIteration
             yield chain([probe], subit)
             consume(subit)
     else:
         count = 0
         while count < maxsplit:
             subit = iter(it.next, sep)
-            probe = next(subit) # let StopIteration percolate up
+            try:
+                probe = next(subit) 
+            except StopIteration:
+                raise StopIteration
             yield chain([probe], subit)
             consume(subit)
             count += 1
+
+def butfirst(xs):
+    return islice(xs, 1, None)
+
+def flatmap(f, *xss):
+    return flat(map(f, *xss))
+
+def take(xs, n):
+    return islice(xs, None, n)
+
+def drop(xs, n):
+    return islice(xs, n, None)
+
+def nth(xs, n):
+    return next(islice(xs, n, None))
+
+def starfilter(f, xss):
+    for xs in xss:
+        if f(*xs):
+            yield xs
+
+def test_chunks():
+    import nose
+    
+    nine = [None] * 9
+    parts = list(chunks(nine, 3))
+    nose.tools.assert_equal(len(parts), 3)
+    for part in parts:
+        nose.tools.assert_equal(len(part), 3)
+    
+    ten = [None] * 10
+    parts = list(chunks(ten, 3))
+    nose.tools.assert_equal(len(parts), 4)
+    for part in parts[:3]:
+        nose.tools.assert_equal(len(part), 3)
+    nose.tools.assert_equal(len(parts[-1]), 1)
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()
+    
+    import nose
+    nose.runmodule()
 

@@ -25,6 +25,12 @@ Currently supports:
 
 
 """
+# some python3 compatibility:
+try:
+    unicode
+except NameError:
+    unicode = str
+
 DEFAULT_LANG = "en"
 
 # Alphabets/syllabaries/etc.
