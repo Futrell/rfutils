@@ -1,4 +1,4 @@
-""" rfutils """
+# rfutils 
 
 These are some various chunks of python that I've found useful to keep
 around. Many of them are useful, while some of them are just doodles 
