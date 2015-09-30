@@ -20,10 +20,16 @@ def memoize(f):
     Decorator to memoize a routine so that returned values are cached.
 
     """
-    if (not inspect.ismethod(f) and len(inspect.getargspec(f).args) == 1
+    # This is faster than functools.lru_cache(maxsize=None)
+    if inspect.ismethod(f):
+        return memoize_method
+    elif (len(inspect.getargspec(f).args) == 1
         and inspect.getargspec(f).varargs is None):
         return fast_memoize(f)
-
+    else:
+        return memoize_function(f)
+    
+def memoize_function(f):
     cache = {}
 
     if _keywords(f):
@@ -46,6 +52,23 @@ def memoize(f):
     wrapper = functools.wraps(f)(wrapper)
     return wrapper
 
+def memoize_method(method):
+    method_name = method.__name__
+    cache_name = "__%s_cache" % method_name
+    def wrapper(self, *args):
+        try:
+            cache = getattr(self, cache_name)
+        except AttributeError:
+            setattr(self, cache_name, {})
+            cache = getattr(self, cache_name)
+        if args in cache:
+            return cache[args]
+        else:
+            cache[args] = result = method(self, *args)
+            return result
+    wrapper = functools.wraps(method)(wrapper)
+    return wrapper
+
 def fast_memoize(f):
     """ Fast Memoize
 
@@ -54,6 +77,8 @@ def fast_memoize(f):
     """
     #Based on Oren Tirosh's code at
     #http://code.activestate.com/recipes/578231-probably-the-fastest-memoization-decorator-in-the-/
+    # Generally an order of magnitude faster than other methods,
+    # but doesn't wrap the function properties as nicely.
 
     class Memodict(dict):
         def __missing__(self, key):
@@ -63,6 +88,9 @@ def fast_memoize(f):
     memodict = Memodict()
     wrapper = memodict.__getitem__
     return wrapper
+
+def lazy_property(method):
+    return property(memoize_method(method))
 
 def _test_memoized(memoized_fn):
     nose.tools.assert_equal(memoized_fn(0), memoized_fn(0))

@@ -16,7 +16,6 @@ except NameError:
 _SENTINEL = object()
 
 consume = partial(deque, maxlen=0)
-
 flat = chain.from_iterable
 
 def blocks(iterable, size, fillvalue=None):
@@ -162,11 +161,6 @@ def segmentations(iterable, maxlen=None):
                                                 breakpoint_guards[1:])):
                     yield tuple(map(tuple, segments(iterable, breakpoints)))
 
-def items_in_context(iterable):
-    lst = list(iterable)
-    for i, item in enumerate(lst):
-        yield lst[:i], item, lst[(i+1):]
-
 def sliding(iterable, n):
     """ Sliding
 
@@ -263,10 +257,9 @@ except NameError:
 
 def buildup(iterable):
     so_far = []
-    for xs in iterable:
-        xs = list(xs)
+    for x in iterable:
         so_far.append(x)
-        yield flat(so_far)
+        yield so_far
 
 def unique(iterable, key=None):
     """ iterate over unique elements of iterable, preserving order """
@@ -286,26 +279,13 @@ def unique(iterable, key=None):
                 yield element
 
 def itranspose(X):
+    """ EXPERIMENTAL """
     its = list(map(iter, X))
     while 1:
         subit = map(next, its)
         probe = next(subit)
         yield chain([probe], subit)
         consume(subit)
-
-def first(iterable):
-    """ Return the first element of an iterable. """
-    for x in iterable:
-        return x
-    else:
-        raise ValueError("Empty iterable passed to first.")
-
-def last(iterable):
-    """ Return the last element of an iterable. """
-    try:
-        return deque(iterable, 1)[0]
-    except IndexError:
-        raise ValueError("Empty iterable passed to last.")
 
 def uniq(iterable, key=None):
     """ uniq: Remove adjacent duplicates.
@@ -363,7 +343,7 @@ def isplit(iterable, sep, maxsplit=None):
     it = iter(iterable)
     if maxsplit is None:
         while 1:
-            subit = iter(lambda: next(it), sep)
+            subit = iter(partial(next, it), sep)
             try:
                 probe = next(subit)
             except StopIteration:
@@ -373,7 +353,7 @@ def isplit(iterable, sep, maxsplit=None):
     else:
         count = 0
         while count < maxsplit:
-            subit = iter(it.next, sep)
+            subit = iter(partial(next, it), sep)
             try:
                 probe = next(subit) 
             except StopIteration:
@@ -382,11 +362,41 @@ def isplit(iterable, sep, maxsplit=None):
             consume(subit)
             count += 1
 
+def partitions(xs):
+    xs = list(xs)
+    for mask in product(*[[True, False]] * len(xs)):
+        left = list(compress(xs, mask))
+        right = list(compress(xs, [not x for x in mask]))
+        yield left, right
+
+def items_in_context(iterable):
+    lst = list(iterable)
+    for i, item in enumerate(lst):
+        yield lst[:i], item, lst[(i+1):]
+
+def thing_and_rest(xs):
+    xs = tuple(xs)
+    for i, x in enumerate(xs):
+        context = xs[:i] + xs[(i+1):]
+        yield x, context
+
+def cons(x, ys):
+    return chain([x], ys)
+
 def butfirst(xs):
     return islice(xs, 1, None)
 
 def flatmap(f, *xss):
     return flat(map(f, *xss))
+
+def starfilter(f, xss):
+    for xs in xss:
+        if f(*xs):
+            yield xs
+
+def zipmap(f, xs):
+    one, two = tee(xs)
+    return zip(one, map(f, two))
 
 def take(xs, n):
     return islice(xs, None, n)
@@ -397,26 +407,46 @@ def drop(xs, n):
 def nth(xs, n):
     return next(islice(xs, n, None))
 
-def starfilter(f, xss):
-    for xs in xss:
-        if f(*xs):
-            yield xs
+def the_only(xs):
+    first_time = True
+    x = _SENTINEL
+    for x in xs:
+        if first_time:
+            first_time = False
+        else:
+            raise ValueError("Iterable passed to the_only had second value %s" % x)
+    if x is _SENTINEL:
+        raise ValueError("Empty iterable passed to the_only")
+    else:
+        return x
+
+def first(iterable):
+    """ Return the first element of an iterable. """
+    for x in iterable:
+        return x
+    else:
+        raise ValueError("Empty iterable passed to first.")
+
+def last(iterable):
+    """ Return the last element of an iterable. """
+    try:
+        return deque(iterable, 1)[0]
+    except IndexError:
+        raise ValueError("Empty iterable passed to last.")
 
 def test_chunks():
-    import nose
-    
     nine = [None] * 9
     parts = list(chunks(nine, 3))
-    nose.tools.assert_equal(len(parts), 3)
+    assert len(parts) == 3
     for part in parts:
-        nose.tools.assert_equal(len(part), 3)
+        assert len(part) == 3
     
     ten = [None] * 10
     parts = list(chunks(ten, 3))
-    nose.tools.assert_equal(len(parts), 4)
+    assert len(parts) == 4
     for part in parts[:3]:
-        nose.tools.assert_equal(len(part), 3)
-    nose.tools.assert_equal(len(parts[-1]), 1)
+        assert len(part) == 3
+    assert len(parts[-1]) == 1
 
 if __name__ == '__main__':
     import doctest

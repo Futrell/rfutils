@@ -1,7 +1,6 @@
 from __future__ import division
 from math import log
 from collections import Counter, defaultdict
-from itertools import imap
 
 base = log(2)
 def log2(x):
@@ -27,7 +26,7 @@ def entropy(counts):
 
     """
     if isinstance(counts, dict):
-        counts = counts.itervalues()
+        counts = counts.values()
 
     total = 0.0
     clogc = 0.0
@@ -43,7 +42,7 @@ def entropy(counts):
         return 0
 
 def conditional_entropy(dict_of_counters):
-    counts = (counter.itervalues() for counter in dict_of_counters.itervalues())
+    counts = (counter.values() for counter in dict_of_counters.values())
     return conditional_entropy_of_counts(counts)
 
 def conditional_entropy_of_counts(iterable_of_iterables):
@@ -87,7 +86,7 @@ def kl(P, Q):
     result = 0.0
     Z_P = 0.0
     Z_Q = 0.0
-    for i, c_i in P.iteritems():
+    for i, c_i in P.items():
         try:
             result += c_i * log(c_i)
             Z_P += c_i
@@ -114,7 +113,7 @@ def mutual_information(counts):
 
     """
     if isinstance(counts, dict):
-        counts = counts.iteritems()
+        counts = counts.items()
 
     total = 0
     c_x = Counter()
@@ -132,8 +131,8 @@ def mutual_information(counts):
 
     return (log(total)
             + (clogc
-               - sum(c*log(c) for c in c_x.itervalues())
-               - sum(c*log(c) for c in c_y.itervalues()))
+               - sum(c*log(c) for c in c_x.values())
+               - sum(c*log(c) for c in c_y.values()))
             / total) / base
 
 def _generate_counts(lines):
@@ -145,7 +144,7 @@ def _generate_counts(lines):
             yield _get_count(line)
     counts = Counter(lines)
     counts[line] += 1
-    for count in counts.itervalues():
+    for count in counts.values():
         yield count
       
 def _get_count(line):

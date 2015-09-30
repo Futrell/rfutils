@@ -5,10 +5,12 @@ Utilities for debugging.
 """
 from __future__ import print_function
 import sys
-import inspect
-from itertools import *
+import itertools as it
+import functools
 
-def tap(x, prefix='', end='\n', file=sys.stdout):
+err = functools.partial(print, file=sys.stderr)
+
+def tap(x, prefix='', end='\n', file=sys.stderr):
     """ Tap
 
     Print the value of x and return it.
@@ -28,13 +30,12 @@ def log_calls(fn):
 
     """
     # based on funcy, http://github.com/Suor/funcy
+    @functools.wraps(fn)
     def _fn(*args, **kwargs):
-        binding = inspect.getcallargs(fn, *args, **kwargs)
-        arg_spec = inspect.getargspec(fn)
-        keys = ifilter(None, chain(arg_spec.args, [arg_spec.varargs, arg_spec.keywords]))
-        binding_str = ", ".join("%s=%s" % (key, binding[key]) for key in keys)
-        signature = fn.__name__ + "(%s)" % binding_str
-        print(signature, file=sys.stderr)
+        binding = ", ".join(map(str, args))
+        binding += ", ".join("%s=%s" % kv for kv in kwargs.items())
+        signature = "%s(%s)" % (fn.__name__, binding_str)
+        err(signature)
         return fn(*args, **kwargs)
     return _fn
 
@@ -45,21 +46,15 @@ def log_calls_and_returns(fn):
     decorated function.
 
     """
+    @functools.wraps(fn)
     def _fn(*args, **kwargs):
-        binding = inspect.getcallargs(fn, *args, **kwargs)
-        arg_spec = inspect.getargspec(fn)
-        keys = ifilter(None, chain(arg_spec.args, [arg_spec.varargs, arg_spec.keywords]))
-        binding_str = ", ".join("%s=%s" % (key, binding[key]) for key in keys)
-        signature = fn.__name__ + "(%s)" % binding_str
-        print(signature, file=sys.stderr)
+        binding = ", ".join(map(str, args))        
+        binding += ", ".join("%s=%s" % kv for kv in kwargs.items())
+        signature = "%s(%s)" % (fn.__name__, binding_str)        
         ret = fn(*args, **kwargs)
-        print("=> %s" % str(ret))
+        err("%s = %s" % (signature, str(ret)))
+        return ret
     return _fn
-
-def assert_equal(x, y):
-    if x != y:
-        print("Assertion error: %s != %s" % (x,y), file=sys.stderr)
-        raise AssertionError
 
 def interruptable(xs):
     try:
