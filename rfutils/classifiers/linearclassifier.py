@@ -10,7 +10,7 @@ except ImportError:
     except ImportError:
         np = None
 
-import classifier
+from . import classifier
 
 def polynomial_kernel(degree, alpha=1.0):
     '''This kernel returns the dot product raised to some power.'''

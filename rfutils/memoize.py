@@ -3,7 +3,7 @@ import functools
 import inspect
 
 def get_cache(memoized_fn):
-    if inspect.isbuiltin(memoized_fn):  # fast_memoize
+    if memoized_fn.__name__ == '__getitem__':  # fast_memoize
         return memoized_fn.__self__
     else:
         return memoized_fn.cache

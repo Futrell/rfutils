@@ -13,8 +13,6 @@ functions, for example functions that index into a cost matrix,
 from __future__ import print_function
 import sys
 
-from memoize import memoize, get_cache
-
 class EditDister(object):
     def __init__(self,
                  delete_cost_fn=None,
@@ -133,8 +131,6 @@ class EditDister(object):
             A positive number representing edit distance.
         
         """
-        # broken
-
         _insert_cost = self.insert_cost
         _delete_cost = self.delete_cost
         _sub_cost = self.sub_cost

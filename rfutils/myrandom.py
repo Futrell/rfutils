@@ -2,13 +2,15 @@ import itertools as it
 import math
 from random import *
 
+from .compat import *
+
 def prob_choice(iterable, key=None):
     """ choice by probability
 
     Choose an element from iterable according to its probability.
 
     Interface can be used similarly to max, min, sorted, etc:
-        * If given an iterable of (probability, ...) sequences, select 
+        * If given an iterable of (probability, x) sequences, select 
             according to the first sequence element.
         * If given a key function, use that to calculate probability.
     
@@ -88,15 +90,15 @@ def weighted_choice(iterable, key=None):
         weights = [x[0] for x in iterable]
 
     rnd = random() * math.fsum(weights)
-    for weight, item in it.izip(weights, iterable):
+    for weight, item in zip(weights, iterable):
         rnd -= weight
         if rnd < 0:
             return item
 
     raise Exception("Shouldn't get here.")
 
-def sample(sequence, size):
-    return [choice(sequence) for _ in xrange(size)]
+def sample_with_replacement(sequence, size):
+    return [choice(sequence) for _ in range(size)]
 
 def test():
     import doctest

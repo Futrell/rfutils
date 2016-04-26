@@ -34,7 +34,7 @@ def log_calls(fn):
     def _fn(*args, **kwargs):
         binding = ", ".join(map(str, args))
         binding += ", ".join("%s=%s" % kv for kv in kwargs.items())
-        signature = "%s(%s)" % (fn.__name__, binding_str)
+        signature = "%s(%s)" % (fn.__name__, binding)
         err(signature)
         return fn(*args, **kwargs)
     return _fn
@@ -50,9 +50,9 @@ def log_calls_and_returns(fn):
     def _fn(*args, **kwargs):
         binding = ", ".join(map(str, args))        
         binding += ", ".join("%s=%s" % kv for kv in kwargs.items())
-        signature = "%s(%s)" % (fn.__name__, binding_str)        
+        signature = "%s(%s)" % (fn.__name__, binding)
         ret = fn(*args, **kwargs)
-        err("%s = %s" % (signature, str(ret)))
+        err("%s = %s" % (signature, ret))
         return ret
     return _fn
 
