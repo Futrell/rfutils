@@ -1,3 +1,12 @@
+""" entropy
+
+Module to calculate Shannon entropy and related measures, with features:
+(1) Not dependent on numpy, so compatible with pypy;
+(2) Focus on constant-space calculations in case input distribution is 
+    represented as an iterator;
+(3) Fast and accurate subject to the above constraints.
+
+"""
 from __future__ import division
 from math import log
 from collections import Counter, defaultdict
@@ -39,19 +48,44 @@ def entropy(counts):
     try:
         return -(clogc/total - log(total)) / base
     except ValueError:
-        return 0
+        return 0.0
 
 def conditional_entropy(dict_of_counters):
-    counts = (counter.values() for counter in dict_of_counters.values())
-    return conditional_entropy_of_counts(counts)
+    """ conditional entropy
+
+    Give the conditional entropy of a conditional distribution X|Y,
+    represented as:
+        * A dictionary of dictionaries of counts {Y -> {X -> count}}, or
+        * an iterable of joint counts (Y,X).
+
+    """
+    if isinstance(iterable, dict):
+        return conditional_entropy_of_counters(iterable)
+    else:
+        counts = defaultdict(Counter)
+        for x, y in pairs:
+            counts[y][x] += 1
+        conditional_counts = (counts_in_context.values()
+                              for counts_in_context in counts.values())
+        return conditional_entropy_of_counts(conditional_counts)    
 
 def conditional_entropy_of_counts(iterable_of_iterables):
     """ conditional entropy of counts
 
-    Conditional entropy of a conditional distribution represented as an 
-    iterable of iterables of counts.
+    Conditional entropy of a conditional distribution X|Y 
+    represented as an iterable of iterables of counts. 
+    An index in the enclosing iterable corresponds to a value of Y;
+    an index in an internal iterable corresponds to a value of X.
 
-    """
+    Example:
+    >> c = [[1, 1], [3, 1]] # A conditional distribution X|Y where c[0][0]
+                            # is the counts of X=0 given Y=0, c[0][1] is 
+                            # the counts of X=1 given Y=0, etc.
+                            # The result is (1/3)*H(X|Y=0) + (2/3)*H(X|Y=1)
+    >> conditional_entropy_of_counts(c)
+    1.5010861115918823 
+
+    """    
     entropy = 0.0
     grand_total = 0.0
     for counts in iterable_of_iterables:
@@ -71,7 +105,14 @@ def conditional_entropy_of_counts(iterable_of_iterables):
     try:
         return entropy / grand_total
     except ZeroDivisionError:
-        return 0
+        return 0.0
+
+def test_conditional_entropy_of_counts():
+    def is_close(a, b):
+        return abs(a - b) < 0.0000001
+    c = [[1, 1], [3, 1]]
+    result = conditional_entropy_of_counts(c)
+    assert is_close(result, (1/3)*entropy([1, 1]) + (2/3)*entropy([3, 1]))    
 
 class KLDomainError(Exception):
     pass
