@@ -92,6 +92,12 @@ def fast_memoize(f):
 def lazy_property(method):
     return property(memoize_method(method))
 
+class MemoMixin(object):
+    def memoize(self, f):
+        wrapper = memoize(f)
+        self.memo = get_cache(wrapper)
+        return wrapper
+
 def _test_memoized(memoized_fn):
     nose.tools.assert_equal(memoized_fn(0), memoized_fn(0))
     nose.tools.assert_equal(memoized_fn(1), memoized_fn(1))

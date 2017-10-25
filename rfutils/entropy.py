@@ -59,8 +59,8 @@ def conditional_entropy(dict_of_counters):
         * an iterable of joint counts (Y,X).
 
     """
-    if isinstance(iterable, dict):
-        return conditional_entropy_of_counters(iterable)
+    if isinstance(dict_of_counters, dict):
+        return conditional_entropy_of_counters(dict_of_counters)
     else:
         counts = defaultdict(Counter)
         for x, y in pairs:

@@ -189,8 +189,8 @@ def one_thru_ngrams(iterable, n):
     The order in which they come out is not guaranteed.
 
     Example:
-        >>> set(one_thru_ngrams("abc", 3))
-        set([('b', 'c'), ('a',), ('c',), ('b',), ('a', 'b', 'c'), ('a', 'b')])
+        set(one_thru_ngrams("abc", 3))
+        {('a', 'b', 'c'), ('a',), ('c',), ('a', 'b'), ('b',), ('b', 'c')}
 
     """
     if hasattr(iterable, '__next__') or hasattr(iterable, 'next'):
@@ -288,13 +288,17 @@ def unique(iterable, key=None):
                 yield element
 
 def itranspose(X):
-    """ EXPERIMENTAL """
+    """ Given [[a, b, c], [d, e, f], [g, h, i]],
+    yield [a, d, g], [b, e, h], [c, f, i],
+    while only lazily evaluating the input interators """
     its = list(map(iter, X))
-    while 1:
-        subit = map(next, its)
-        probe = next(subit)
-        yield it.chain([probe], subit)
-        consume(subit)
+    N = len(X)
+    while True:
+        subit = list(map(next, its))
+        if len(subit) < N:
+            raise StopIteration
+        else:
+            yield subit
 
 def uniq(iterable, key=None):
     """ uniq: Remove adjacent duplicates.
@@ -392,8 +396,21 @@ def thing_and_rest(xs):
 def cons(x, ys):
     return it.chain([x], ys)
 
+def first_and_rest(xs):
+    """ like car and cdr """
+    xs_i = iter(xs)
+    return next(xs_i), xs_i
+
 def butfirst(xs):
-    return it.islice(xs, 1, None)
+    return first_and_rest(xs)[1]
+
+def butlast(xs):
+    def holder():
+        hold = None
+        for x in xs_i:
+            yield hold
+            hold = x
+    return butfirst(holder())
 
 def flatmap(f, *xss):
     return flat(map(f, *xss))
@@ -416,7 +433,7 @@ def drop(xs, n):
 def test_chunks():
     nine = [None] * 9
     parts = list(chunks(nine, 3))
-    assert len(parts) == 3
+    assert len(parts) == 3 
     for part in parts:
         assert len(part) == 3
     

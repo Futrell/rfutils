@@ -60,12 +60,12 @@ def mean(xs):
 
 def weighted_mean(wxs):
     total = 0
-    n = 0
+    Z = 0
     for w, x in wxs:
         total += w * x
-        n += w
+        Z += w
     try:
-        return total/n
+        return total/Z
     except ZeroDivisionError:
         raise ValueError("Empty iterable passed to weighted_mean")
 
@@ -132,6 +132,8 @@ def lists_by_key(xs):
 
 def sets_by_key(xs):
     return mreduce_by_key(set.add, xs, set)
+
+foldl = functools.reduce
 
 if __name__ == '__main__':
     import doctest
