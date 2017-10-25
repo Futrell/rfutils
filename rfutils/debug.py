@@ -8,7 +8,8 @@ import sys
 import itertools as it
 import functools
 
-err = functools.partial(print, file=sys.stderr)
+def err(x, end='\n'):
+    print(x, end=end, file=sys.stderr, flush=True)
 
 def tap(x, prefix='', end='\n', file=sys.stderr):
     """ Tap
@@ -56,7 +57,7 @@ def log_calls_and_returns(fn):
         return ret
     return _fn
 
-def interruptable(xs):
+def interruptible(xs):
     try:
         for x in xs:
             yield x
