@@ -430,6 +430,11 @@ def take(xs, n):
 def drop(xs, n):
     return it.islice(xs, n, None)
 
+def splice(xs, i):
+    for j, x in enumerate(xs):
+        if i != j:
+            yield x
+
 def test_chunks():
     nine = [None] * 9
     parts = list(chunks(nine, 3))

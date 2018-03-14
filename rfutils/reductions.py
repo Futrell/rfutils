@@ -10,9 +10,24 @@ import functools
 _SENTINEL = object()
 
 def nth(xs, n):
+    """ Return the nth element of an iterable.
+
+    Example:
+    >>> xs = iter(range(100))
+    >>> nth(xs, 10)
+    10
+    """
     return next(itertools.islice(xs, n, None))
 
 def the_only(xs):
+    """ Return the single element of an iterable. 
+    Throw ValueError if the iterable is empty or has more than 1 element. 
+    """
+    result, = xs
+    return result
+
+def _the_only(xs):
+    # old and slow but it has better error messages
     first_time = True
     x = _SENTINEL
     for x in xs:
@@ -59,6 +74,9 @@ def mean(xs):
         raise ValueError("Empty iterable passed to mean")
 
 def weighted_mean(wxs):
+    """ Weighted mean of values of an iterable, where each element of the 
+    iterable consists of a (weight, value) pair. Input weights do not have to 
+    sum to 1. """
     total = 0
     Z = 0
     for w, x in wxs:
@@ -102,9 +120,17 @@ def reduce_by_key(op, kvs, init):
     return d
 
 def mreduce(op, xs, init_thunk):
+    """ mutably reduce
+
+    Example:
+    >>> from collections import Counter
+    >>> mreduce(Counter.update, 'abcabb', Counter)
+    Counter({'a': 2, 'b': 3, 'c': 1})
+
+    """
     acc = init_thunk()
     for x in xs:
-        op(acc, xs)
+        op(acc, x)
     return acc
 
 def mreduce_by_key(op, kvs, init_thunk):
