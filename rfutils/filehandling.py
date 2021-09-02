@@ -19,5 +19,5 @@ builtin_open = open
 def open(filename, **kwds):
     _, extension = os.path.splitext(filename)
     opener = OPENERS.get(extension, builtin_open)
-    return opener(filename, **kwd)
+    return opener(filename, **kwds)
 
