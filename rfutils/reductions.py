@@ -19,15 +19,27 @@ def nth(xs, n):
     """
     return next(itertools.islice(xs, n, None))
 
-def the_only(xs):
-    """ Return the single element of an iterable. 
-    Throw ValueError if the iterable is empty or has more than 1 element. 
+def the_unique(xs):
+    """ Return the unique value of an iterable of equal values. 
+    Example: the_unique([3,3,3,3]) -> 3
+    Throws ValueError if there is more than one unique value,
+    or if the input iterable is empty.
     """
-    result, = xs
-    return result
+    try:
+        first, *rest = xs
+    except ValueError:
+        raise ValueError("Empty iterable passed to the_unique")
+    for r in rest:
+        if first != r:
+            raise ValueError("Unequal values in iterable passed to the_unique: %s != %s" % (str(first), str(r)))
+    return first
 
-def _the_only(xs):
-    # old and slow but it has better error messages
+def the_only(xs):
+    """ Return the single value of a one-element iterable """
+    # There is a simpler implementation as:
+    # value, = xs
+    # return value
+    # but this does admit helpful error messages
     first_time = True
     x = _SENTINEL
     for x in xs:

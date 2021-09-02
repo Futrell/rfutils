@@ -179,7 +179,10 @@ def sliding(iterable, n):
     its = it.tee(iterable, n)
     for i, iterator in enumerate(its):
         for _ in range(i):
-            next(iterator)
+            try:
+                next(iterator)
+            except StopIteration:
+                return zip([])
     return zip(*its)
 
 def one_thru_ngrams(iterable, n):
@@ -434,6 +437,19 @@ def splice(xs, i):
     for j, x in enumerate(xs):
         if i != j:
             yield x
+
+def cartesian_power(xs, k):
+    xs = list(xs)
+    return it.product(*[xs]*k)
+
+def interruptible(iter, breaker=KeyboardInterrupt):
+    while True:
+        try:
+            yield next(iter)
+        except breaker:
+            break
+        except StopIteration:
+            break            
 
 def test_chunks():
     nine = [None] * 9

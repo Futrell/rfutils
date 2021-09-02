@@ -8,7 +8,3 @@ def write_dicts(file, lines):
     writer.writerow(first_line)
     for line in lines_iter:
         writer.writerow(line)
-
-        
-    
-    

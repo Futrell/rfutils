@@ -127,6 +127,7 @@ def reorder(xs, indices):
     """ reorder
 
     Elements of xs in the order specified by indices.
+    For all i, reorder(xs, order)[i] == xs[order[i]].
     
     Example:
     >>> list(reorder(['a', 'b', 'c', 'd'], [3, 1, 2, 0]))
